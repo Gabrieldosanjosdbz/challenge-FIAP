@@ -1,0 +1,17 @@
+# Ignorar o ambiente virtual
+lib64/
+bin/
+include/
+lib/
+
+# Ignorar cache do Python
+__pycache__/
+*.pyc
+
+# Ignorar arquivos do editor
+.vscode/
+.idea/
+*.swp
+lib64
+.env
+
