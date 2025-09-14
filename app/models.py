@@ -12,3 +12,18 @@ class ResponseOutput(BaseModel):
     solar_level: int
     response: str      
     date_time: datetime  
+
+class Entrada(BaseModel):
+    url: str
+
+class Saida(BaseModel):
+    id: int
+    needCleaning: bool
+    nivelSolar: int
+    analise: str
+
+class Analise(BaseModel):
+    id: ObjectIdField = Field(alias="_id")
+    entrada: Entrada
+    saida: Saida
+    timestamp: datetime
