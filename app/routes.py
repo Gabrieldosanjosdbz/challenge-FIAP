@@ -1,11 +1,20 @@
-from .models import AnaliseRequest, ResponseOutput, Analise
+from .models import AnaliseRequest, ResponseOutput, Analise, AnaliseCriadaResponse
 from .llm_service import analisar_painel
 from .database import collection
-from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, HTTPException, status
+from datetime import datetime, timezone
 from typing import List
+from datetime import datetime, timedelta
+from fastapi import APIRouter, HTTPException, status
+from bson import ObjectId #
+from bson.errors import InvalidId
+from fastapi import APIRouter
 
 router = APIRouter()
+
+def serialize_doc(doc):
+    if doc and "_id" in doc:
+        doc["_id"] = str(doc["_id"])
+    return doc
 
 @router.get("/")
 def ping():
@@ -49,9 +58,20 @@ def pega_analises_por_data(data_str: str):
         )
 
     return documentos
+@router.get("/analises/{item_id}")
+def pega_analises_por_data(item_id: str):
+    try:
+        documento = collection.find_one({"_id": ObjectId(item_id)})
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="ID de item inválido")
+
+    if not documento:
+        raise HTTPException(status_code=404, detail="Item não encontrado")
+
+    return serialize_doc(documento)
 
 
-@router.post("/analisar")
+@router.post("/analisar",response_model=AnaliseCriadaResponse)
 async def analisar(input_data: AnaliseRequest):
     resultado = await analisar_painel(input_data.url)
 
@@ -60,13 +80,11 @@ async def analisar(input_data: AnaliseRequest):
         "saida": resultado,
         "timestamp": datetime.now(timezone.utc)
     }
-    collection.insert_one(registro)
+    result = collection.insert_one(registro)
 
-    return ResponseOutput(
-        status="success",
-        url=input_data.url,
-        need_cleaning=resultado.get("needCleaning", False),
-        solar_level= resultado.get("nivelSolar", 0),
-        response=resultado.get("analise", ""),
-        date_time=datetime.now(timezone.utc)
-    )
+    resposta = {
+        "id": str(result.inserted_id),
+        "resultado": resultado
+    }
+
+    return resposta
